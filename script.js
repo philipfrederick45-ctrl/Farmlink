@@ -339,9 +339,6 @@ async function renderWeather(locationName = 'Accra') {
     el('[data-w-location]', container).textContent = geo.name;
     el('[data-w-temp]', container).textContent = `${w.temp}°C`;
     el('[data-w-desc]', container).textContent = `${w.desc} · Humidity ${w.humidity}%`;
-    el('[data-w-wind]', container).textContent = `${w.wind} km/h`;
-    el('[data-w-sunrise]', container).textContent = w.sunrise || '';
-    el('[data-w-sunset]', container).textContent = w.sunset || '';
     const tip = el('[data-w-tip]', container);
     if (tip) {
       let message = 'Great day for farm work.';
@@ -1543,9 +1540,6 @@ async function renderWeather(locationName = 'Accra') {
     el('[data-w-location]', container).textContent = coords.name;
     el('[data-w-temp]', container).textContent = `${weather.temp}°C`;
     el('[data-w-desc]', container).textContent = `${weather.desc} · Humidity ${weather.humidity}%`;
-    el('[data-w-wind]', container).textContent = `${weather.wind} km/h`;
-    el('[data-w-sunrise]', container).textContent = weather.sunrise || '';
-    el('[data-w-sunset]', container).textContent = weather.sunset || '';
     const tip = el('[data-w-tip]', container);
     if (tip) {
       let message = 'Great day for farm work.';

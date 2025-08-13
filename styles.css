@@ -370,12 +370,64 @@ section { padding: 48px 0; }
 .icon-btn.active { color: #ef4444; border-color: #fecaca; background:#fff1f2; }
 
 /* Weather */
-.weather-card .row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+.weather-card {
+  /* Uses default card styling from .card class */
 }
-.forecast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+.weather-card .section-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.weather-card .section-header .muted {
+  color: var(--text-500);
+  font-size: 0.9rem;
+}
+
+.weather-main {
+  margin: 20px 0;
+}
+
+.weather-temp {
+  text-align: center;
+}
+
+.temp-display {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+  color: var(--text-900);
+}
+
+.weather-desc {
+  color: var(--text-500);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.weather-tip {
+  background: var(--bg-100);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.weather-tip strong {
+  color: var(--text-900);
+}
+
+.weather-tip span {
+  color: var(--text-500);
+}
+
+.forecast-grid { 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 12px; 
+}
 .forecast-item { 
   padding: 12px; 
   border-radius: 10px; 

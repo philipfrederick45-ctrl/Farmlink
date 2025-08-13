@@ -45,33 +45,19 @@
 
     <section>
       <div class="container grid grid-2">
-        <div class="card weather-card" id="weather-card">
+        <div class="card" id="weather-card">
           <div class="card-body">
             <div class="section-header">
               <h2><i class="ri-sun-line" style="color:#f59e0b"></i> <span data-w-location>Accra</span></h2>
               <div class="muted">Updated just now</div>
             </div>
-            <div class="row">
-              <div style="min-width:160px">
-                <div style="font-size:34px; font-weight:700;" data-w-temp>28°C</div>
-                <div class="muted" data-w-desc>Sunny · Humidity 65%</div>
-              </div>
-              <div class="grid grid-3" style="flex:1;">
-                <div class="card" style="padding:12px;">
-                  <div class="muted">Wind</div>
-                  <div data-w-wind>10 km/h</div>
-                </div>
-                <div class="card" style="padding:12px;">
-                  <div class="muted">Sunrise</div>
-                  <div data-w-sunrise>6:05 AM</div>
-                </div>
-                <div class="card" style="padding:12px;">
-                  <div class="muted">Sunset</div>
-                  <div data-w-sunset>6:12 PM</div>
-                </div>
+            <div class="weather-main">
+              <div class="weather-temp">
+                <div class="temp-display" data-w-temp>28°C</div>
+                <div class="weather-desc" data-w-desc>Sunny · Humidity 65%</div>
               </div>
             </div>
-            <div class="mt-3 card" style="padding:12px; background:#fff8e1; border-color:#ffe49a;">
+            <div class="weather-tip">
               <strong>Farming Tip:</strong> <span data-w-tip>Great day for farm work.</span>
             </div>
           </div>
