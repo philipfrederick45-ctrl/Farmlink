@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Farmer Dashboard • FarmLink GH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <script src="firebase-config.js"></script>
+    
+
+    <section class="container mt-3 dashboard">
+      <aside class="card sidebar">
+        <div class="brand" style="margin-bottom:10px"><span class="logo"><i class="ri-plant-line"></i></span>Farmer</div>
+        <nav>
+          <a href="#" class="active"><i class="ri-dashboard-line"></i> Dashboard</a>
+          <a href="#products"><i class="ri-shopping-bag-2-line"></i> My Products</a>
+          <a href="#add"><i class="ri-add-line"></i> Add Product</a>
+          <a href="weather.html"><i class="ri-sun-line"></i> Weather</a>
+          <a href="#profile"><i class="ri-user-3-line"></i> Profile</a>
+        </nav>
+      </aside>
+
+      <main>
+        <div class="grid stats">
+          <div class="card stat">
+            <div class="muted">Total Listings</div>
+            <h3>12</h3>
+          </div>
+          <div class="card stat">
+            <div class="muted">Pending Orders</div>
+            <h3>8</h3>
+          </div>
+          <div class="card stat">
+            <div class="muted">Rating</div>
+            <h3>4.8</h3>
+          </div>
+          <div class="card stat">
+            <div class="muted">Total Buyers</div>
+            <h3>145</h3>
+          </div>
+        </div>
+
+        <div class="mt-3 card">
+          <div class="card-body">
+            <h3 style="margin:0 0 8px;">Recent Activity</h3>
+            <ul class="muted" style="padding-left:18px; margin:0;">
+              <li>New order for Fresh Tomatoes from Buyer in Accra — 2 hours ago</li>
+              <li>Maize listing was viewed 15 times today — 4 hours ago</li>
+              <li>Profile updated successfully — 1 day ago</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-3 card" id="products">
+          <div class="card-body">
+            <div class="flex space-between">
+              <h3 style="margin:0">My Products</h3>
+              <button class="btn btn-primary" id="add-product">Add Product</button>
+            </div>
+            <div class="mt-2" style="overflow:auto;">
+              <table class="table" id="products-table">
+                <thead>
+                  <tr><th>Product</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Fresh Tomatoes</td><td>₵50/basket</td><td>24</td><td><button class="btn btn-outline btn-sm">Edit</button> <button class="btn btn-outline btn-sm">Delete</button></td></tr>
+                  <tr><td>Maize</td><td>₵120/sack</td><td>18</td><td><button class="btn btn-outline btn-sm">Edit</button> <button class="btn btn-outline btn-sm">Delete</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <script src="script.js"></script>
+  </body>
+  </html>
+

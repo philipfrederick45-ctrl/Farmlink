@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Menu Test - FarmLink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container nav-inner">
+            <a class="brand" href="index.html">
+                <span class="logo"><i class="ri-plant-line"></i></span>
+                <span>FarmLink GH</span>
+            </a>
+            <button id="menu-btn" class="menu-btn">
+                <i class="ri-menu-line"></i>
+            </button>
+            <nav class="nav-links">
+                <button class="mobile-close" id="mobile-close">×</button>
+                <a href="index.html">Home</a>
+                <a href="marketplace.html">Marketplace</a>
+                <a href="weather.html">Weather</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+                <div class="mobile-cta">
+                    <a class="btn btn-outline" href="login.html">Login</a>
+                    <a class="btn btn-secondary" href="signup.html">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main style="padding: 2rem; text-align: center;">
+        <h1>Mobile Menu Test</h1>
+        <p>Resize your browser window to mobile size (768px or less) to test the mobile menu.</p>
+        <p>The mobile menu should:</p>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+            <li>Show a hamburger menu button on mobile</li>
+            <li>Open a full-screen overlay when clicked</li>
+            <li>Have a close button (×) in the top-right corner</li>
+            <li>Close when clicking outside or pressing Escape</li>
+            <li>Close when clicking on a navigation link</li>
+        </ul>
+        
+        <div style="margin-top: 2rem;">
+            <h3>Test Instructions:</h3>
+            <ol style="text-align: left; max-width: 400px; margin: 0 auto;">
+                <li>Resize browser to mobile width (&lt;768px)</li>
+                <li>Click the hamburger menu button</li>
+                <li>Try clicking the close button (×)</li>
+                <li>Try clicking outside the menu</li>
+                <li>Try pressing the Escape key</li>
+                <li>Try clicking on a navigation link</li>
+            </ol>
+        </div>
+    </main>
+
+    <script>
+        // Simple mobile menu setup for testing
+        function setupMobileMenu() {
+            const btn = document.querySelector('#menu-btn');
+            const links = document.querySelector('.nav-links');
+            const closeBtn = document.querySelector('#mobile-close');
+            if (!btn || !links) return;
+            
+            // Toggle menu on button click
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                links.classList.toggle('show');
+                
+                // Change icon based on state
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    if (links.classList.contains('show')) {
+                        icon.className = 'ri-close-line';
+                    } else {
+                        icon.className = 'ri-menu-line';
+                    }
+                }
+            });
+            
+            // Close menu when clicking the close button
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    links.classList.remove('show');
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'ri-menu-line';
+                    }
+                });
+            }
+            
+            // Close menu when clicking on a link
+            links.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A') {
+                    links.classList.remove('show');
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'ri-menu-line';
+                    }
+                }
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!links.contains(e.target) && !btn.contains(e.target)) {
+                    links.classList.remove('show');
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'ri-menu-line';
+                    }
+                }
+            });
+            
+            // Close menu on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && links.classList.contains('show')) {
+                    links.classList.remove('show');
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'ri-menu-line';
+                    }
+                }
+            });
+        }
+        
+        // Initialize mobile menu
+        document.addEventListener('DOMContentLoaded', setupMobileMenu);
+    </script>
+</body>
+</html>
