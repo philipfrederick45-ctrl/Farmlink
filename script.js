@@ -1,12 +1,8 @@
-/* FarmLink GH - Minimal interactivity with mock data */
+/* FarmLink GH - Main Application Script */
+// Now using local database instead of Firebase
 
 const el = (selector, parent = document) => parent.querySelector(selector);
 const els = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
-
-// FarmLink GH - Main Application Script
-// Initialize Firebase and core functionality
-
-// Firebase functions will be loaded dynamically
 
 let currentUser = null;
 let userProfile = null;
@@ -14,23 +10,17 @@ let userProfile = null;
 // Initialize the application
 async function initApp() {
   try {
-    // Wait for Firebase to be initialized
-    if (window.initializeFirebase) {
-      const firebase = await window.initializeFirebase();
-      console.log('Firebase initialized in main app');
-      
-      // Wait for auth system to be ready
-      if (window.farmLinkAuth) {
-        // Set up auth state listener
-        setupAuthStateListener();
-      } else {
-        // Wait for auth system to initialize
-        document.addEventListener('DOMContentLoaded', () => {
-          if (window.farmLinkAuth) {
-            setupAuthStateListener();
-          }
-        });
-      }
+    // Wait for local database and auth to be initialized
+    if (window.localDB && window.localAuth) {
+      console.log('Local database and auth initialized in main app');
+      setupAuthStateListener();
+    } else {
+      // Wait for local systems to initialize
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.localDB && window.localAuth) {
+          setupAuthStateListener();
+        }
+      });
     }
   } catch (error) {
     console.error('Failed to initialize app:', error);
@@ -39,37 +29,31 @@ async function initApp() {
 
 // Set up authentication state listener
 function setupAuthStateListener() {
-  if (!window.farmLinkAuth) return;
+  if (!window.localAuth) return;
   
   // Listen for auth state changes
-  const auth = window.farmLinkAuth.auth;
-  if (auth) {
-    auth.onAuthStateChanged(async (user) => {
-      currentUser = user;
-      if (user) {
-        console.log('User authenticated:', user.email);
-        await loadUserProfile(user.uid);
-        setupProtectedFeatures();
-      } else {
-        console.log('User signed out');
-        userProfile = null;
-        hideProtectedFeatures();
-      }
-    });
-  }
+  document.addEventListener('authStateChanged', async (event) => {
+    const user = event.detail.user;
+    currentUser = user;
+    
+    if (user) {
+      console.log('User authenticated:', user.email);
+      await loadUserProfile(user.uid);
+      setupProtectedFeatures();
+    } else {
+      console.log('User signed out');
+      userProfile = null;
+      hideProtectedFeatures();
+    }
+  });
 }
 
 // Load user profile from database
 async function loadUserProfile(uid) {
   try {
-    if (window.farmLinkAuth) {
-      userProfile = await window.farmLinkAuth.getUserProfile(uid);
+    if (window.localDB) {
+      userProfile = await window.localDB.getUser(uid);
       console.log('User profile loaded:', userProfile);
-      
-      // Update dashboard if on dashboard page
-      if (window.location.pathname.includes('dashboard.html')) {
-        await loadUserProfileIntoDashboard();
-      }
     }
   } catch (error) {
     console.error('Error loading user profile:', error);
@@ -81,14 +65,14 @@ function setupProtectedFeatures() {
   // Update navigation to show user info
   updateNavigationForUser();
   
-  // Set up dashboard if on dashboard page
-  if (window.location.pathname.includes('dashboard.html')) {
-    setupDashboard();
-  }
-  
   // Set up marketplace if on marketplace page
   if (window.location.pathname.includes('marketplace.html')) {
     setupMarketplace();
+  }
+  
+  // Set up dashboard features if on dashboard page
+  if (window.location.pathname.includes('dashboard.html')) {
+    setupDashboard();
   }
 }
 
@@ -102,6 +86,227 @@ function hideProtectedFeatures() {
   protectedElements.forEach(el => {
     el.style.display = 'none';
   });
+}
+
+// Set up dashboard functionality
+function setupDashboard() {
+  // Set up database management buttons
+  const exportBtn = document.getElementById('export-data');
+  const importBtn = document.getElementById('import-data');
+  const importFile = document.getElementById('import-file');
+  
+  if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+      try {
+        await window.localDB.exportData();
+        showMessage('Data exported successfully!', 'success');
+      } catch (error) {
+        showMessage('Failed to export data. Please try again.', 'error');
+      }
+    });
+  }
+  
+  if (importBtn) {
+    importBtn.addEventListener('click', () => {
+      importFile.click();
+    });
+  }
+  
+  if (importFile) {
+    importFile.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        try {
+          const text = await file.text();
+          await window.localDB.importData(text);
+          showMessage('Data imported successfully!', 'success');
+          // Reload the page to show imported data
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } catch (error) {
+          showMessage('Failed to import data. Please check the file format.', 'error');
+        }
+      }
+    });
+  }
+  
+  // Set up logout button
+  const logoutBtn = document.querySelector('.logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      if (window.localAuth) {
+        window.localAuth.handleLogout(e);
+      }
+    });
+  }
+  
+  // Set up quick action buttons
+  const addProductBtn = document.getElementById('add-product');
+  if (addProductBtn) {
+    addProductBtn.addEventListener('click', () => {
+      // TODO: Implement add product functionality
+      showMessage('Add product feature coming soon!', 'info');
+    });
+  }
+  
+  // Load user's actual products from database
+  loadUserProducts();
+  
+  // Update user info in header
+  updateDashboardUserInfo();
+  
+  // Setup product form
+  setupProductForm();
+}
+
+// Load user's products from local database
+async function loadUserProducts() {
+  try {
+    if (window.localDB && currentUser) {
+      const products = await window.localDB.getUserProducts(currentUser.uid);
+      displayUserProducts(products);
+    }
+  } catch (error) {
+    console.error('Error loading user products:', error);
+  }
+}
+
+// Display user's products in the dashboard
+function displayUserProducts(products) {
+  const productsTable = document.getElementById('products-table');
+  if (!productsTable) return;
+  
+  const tbody = productsTable.querySelector('tbody');
+  if (!tbody) return;
+  
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-500); padding: 2rem;">No products yet. Add your first product!</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = products.map(product => {
+    // Determine stock badge class
+    let stockBadgeClass = 'high';
+    if (product.stock <= 10) stockBadgeClass = 'low';
+    else if (product.stock <= 25) stockBadgeClass = 'medium';
+    
+    return `
+      <tr>
+        <td>
+          <div class="product-cell">
+            <img src="image.jpg" alt="${product.name}" class="product-image">
+            <div>
+              <strong>${product.name}</strong>
+              <span class="product-category">${product.category || 'General'}</span>
+            </div>
+          </div>
+        </td>
+        <td>₵${product.price}/${product.unit || 'unit'}</td>
+        <td><span class="stock-badge ${stockBadgeClass}">${product.stock}</span></td>
+        <td><span class="status-badge active">Active</span></td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-icon" title="Edit" onclick="editProduct(${product.id})">
+              <i class="ri-edit-line"></i>
+            </button>
+            <button class="btn-icon" title="Delete" onclick="deleteProduct(${product.id})">
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Show message to user
+function showMessage(message, type = 'info') {
+  // Remove existing messages
+  const existingMessages = document.querySelectorAll('.message');
+  existingMessages.forEach(el => el.remove());
+
+  // Create new message
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}`;
+  messageDiv.textContent = message;
+
+  // Insert message at top of dashboard
+  const dashboard = document.querySelector('.dashboard-container');
+  if (dashboard) {
+    dashboard.insertBefore(messageDiv, dashboard.firstChild);
+  }
+
+  // Auto-remove message after 5 seconds
+  setTimeout(() => {
+    if (messageDiv.parentNode) {
+      messageDiv.remove();
+    }
+  }, 5000);
+}
+
+// Update dashboard user info
+function updateDashboardUserInfo() {
+  if (currentUser) {
+    const userNameElement = document.querySelector('.user-name');
+    const userRoleElement = document.querySelector('.user-role');
+    
+    if (userNameElement) {
+      userNameElement.textContent = currentUser.fullName || currentUser.email;
+    }
+    
+    if (userRoleElement) {
+      userRoleElement.textContent = userProfile?.role || 'Farmer';
+    }
+  }
+}
+
+// Product management functions
+function editProduct(productId) {
+  // TODO: Implement edit product functionality
+  showMessage('Edit product feature coming soon!', 'info');
+}
+
+function deleteProduct(productId) {
+  if (confirm('Are you sure you want to delete this product?')) {
+    // TODO: Implement delete product functionality
+    showMessage('Delete product feature coming soon!', 'info');
+  }
+}
+
+// Setup product form
+function setupProductForm() {
+  const form = document.getElementById('add-product-form');
+  if (form) {
+    form.addEventListener('submit', handleAddProduct);
+  }
+}
+
+// Handle adding new product
+async function handleAddProduct(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const productData = {
+    name: formData.get('name'),
+    category: formData.get('category'),
+    price: parseFloat(formData.get('price')),
+    unit: formData.get('unit'),
+    stock: parseInt(formData.get('stock')),
+    description: formData.get('description'),
+    userId: currentUser.uid,
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    await window.localDB.addProduct(productData);
+    showMessage('Product added successfully!', 'success');
+    event.target.reset();
+    loadUserProducts(); // Refresh the products table
+  } catch (error) {
+    console.error('Error adding product:', error);
+    showMessage('Failed to add product. Please try again.', 'error');
+  }
 }
 
 // Update navigation for authenticated user
@@ -413,9 +618,6 @@ function productCardHTML(p) {
   return `
   <div class="card product-card">
     <img src="../image.jpg" alt="${p.name}" />
-    <div class="topbar">
-      <button class="icon-btn" title="Save" data-like><i class="ri-heart-3-line"></i></button>
-    </div>
     <div class="card-body">
       <h3 style="margin:0 0 6px; font-size:18px;">${p.name}</h3>
       <div class="meta">₵${p.price}/${p.unit} • ${p.location}</div>
@@ -455,13 +657,7 @@ function setupMarketplace() {
     });
   });
 
-  // Wishlist (like) toggle on product images
-  grid.addEventListener('click', (e) => {
-    const fav = e.target.closest('.icon-btn[data-like]');
-    if (!fav) return;
-    fav.classList.toggle('active');
-    showToast(fav.classList.contains('active') ? 'Added to wishlist' : 'Removed from wishlist');
-  });
+
 
   // Add activity tracking for category browsing
   const categoryButtons = document.querySelectorAll('.category-btn');
@@ -501,7 +697,7 @@ function setupAuth() {
         await signInWithEmailAndPassword(auth, email, password);
         await ensureUserDoc();
         showToast('Welcome back!', 'success');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (err) {
         showToast(err.message || 'Login failed', 'error');
       }
@@ -513,7 +709,7 @@ function setupAuth() {
         await signInWithPopup(auth, googleProvider);
         await ensureUserDoc();
         showToast('Logged in with Google', 'success');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (err) {
         showToast(err.message || 'Google sign-in failed', 'error');
       }
@@ -531,7 +727,7 @@ function setupAuth() {
         await createUserWithEmailAndPassword(auth, email, password);
         await ensureUserDoc();
         showToast('Account created', 'success');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (err) {
         showToast(err.message || 'Signup failed', 'error');
       }
@@ -543,7 +739,7 @@ function setupAuth() {
         await signInWithPopup(auth, googleProvider);
         await ensureUserDoc();
         showToast('Account created with Google', 'success');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (err) {
         showToast(err.message || 'Google sign-up failed', 'error');
       }
@@ -575,7 +771,7 @@ function setupAuth() {
   }
 }
 
-// Create user profile document if missing, with null defaults for all dashboard fields
+// Create user profile document if missing
 async function ensureUserDoc() {
   const { auth, db, doc, getDoc, setDoc } = await initFirebase();
   const user = auth.currentUser;
@@ -595,46 +791,8 @@ async function ensureUserDoc() {
       experience: null,
       bio: null,
       profileImage: null,
-      stats: { 
-        totalListings: 0, 
-        pendingOrders: 0, 
-        rating: 0, 
-        totalBuyers: 0,
-        totalSales: 0,
-        totalRevenue: 0,
-        completedOrders: 0,
-        customerReviews: 0
-      },
-      preferences: {
-        notifications: true,
-        emailUpdates: true,
-        marketAlerts: true
-      },
-      achievements: [],
       createdAt: Date.now(),
-      lastActive: Date.now(),
-      // Initialize all dashboard sections to null/empty
-      dashboard: {
-        recentActivity: [],
-        upcomingTasks: [],
-        marketInsights: null,
-        weatherAlerts: [],
-        financialSummary: {
-          monthlyRevenue: null,
-          monthlyExpenses: null,
-          profitMargin: null
-        },
-        inventory: {
-          totalProducts: 0,
-          lowStockItems: [],
-          outOfStockItems: []
-        },
-        orders: {
-          pending: [],
-          processing: [],
-          completed: []
-        }
-      }
+      lastActive: Date.now()
     };
     await setDoc(ref, profile);
   } else {
@@ -1018,111 +1176,9 @@ async function loadCompleteUserProfile() {
   return snap.exists() ? snap.data() : null;
 }
 
-// Enhanced function to load user profile into dashboard with all fields
-async function loadUserProfileIntoDashboard() {
-  if (!currentUser) return;
-  
-  try {
-    const profile = await loadCompleteUserProfile();
-    if (!profile) return;
-    
-    userProfile = profile;
-    
-    // Count actual products from user's products collection
-    const actualProductCount = await countUserProducts();
-    
-    // Update profile with actual counts if they differ
-    if (actualProductCount !== (profile.stats?.totalListings || 0)) {
-      await updateUserStats({
-        totalListings: actualProductCount,
-        totalProducts: actualProductCount
-      });
-      
-      // Update local profile
-      userProfile.stats = userProfile.stats || {};
-      userProfile.stats.totalListings = actualProductCount;
-      userProfile.dashboard = userProfile.dashboard || {};
-      userProfile.dashboard.inventory = userProfile.dashboard.inventory || {};
-      userProfile.dashboard.inventory.totalProducts = actualProductCount;
-    }
-    
-    // Update stat cards with real data
-    const statEls = {
-      listings: document.querySelector('.stats .card:nth-child(1) h3'),
-      orders: document.querySelector('.stats .card:nth-child(2) h3'),
-      revenue: document.querySelector('.stats .card:nth-child(3) h3'),
-      buyers: document.querySelector('.stats .card:nth-child(4) h3')
-    };
-    
-    if (statEls.listings) statEls.listings.textContent = userProfile.stats?.totalListings || 0;
-    if (statEls.orders) statEls.orders.textContent = userProfile.stats?.pendingOrders || 0;
-    if (statEls.revenue) statEls.revenue.textContent = `₵${userProfile.stats?.totalRevenue || 0}`;
-    if (statEls.buyers) statEls.buyers.textContent = userProfile.stats?.totalBuyers || 0;
-    
-    // Load dashboard sections
-    await loadDashboardSections(userProfile);
-    
-    console.log('Dashboard loaded with real data:', {
-      totalListings: userProfile.stats?.totalListings,
-      totalProducts: userProfile.dashboard?.inventory?.totalProducts,
-      actualProductCount
-    });
-    
-  } catch (error) {
-    console.error('Error loading user profile into dashboard:', error);
-  }
-}
 
-// Function to load various dashboard sections
-function loadDashboardSections(profile) {
-  // Load recent activity
-  const activityContainer = document.querySelector('[data-activity]');
-  if (activityContainer && profile?.dashboard?.recentActivity) {
-    const recentActivity = profile.dashboard.recentActivity.slice(-5).reverse();
-    activityContainer.innerHTML = recentActivity.length > 0 
-      ? recentActivity.map(activity => `
-          <div class="activity-item">
-            <span class="activity-type">${formatActivityType(activity.type)}</span>
-            <span class="activity-time">${formatTimeAgo(activity.timestamp)}</span>
-          </div>
-        `).join('')
-      : '<p>No recent activity</p>';
-  }
-  
-  // Load financial summary
-  const financialContainer = document.querySelector('[data-financial]');
-  if (financialContainer && profile?.dashboard?.financialSummary) {
-    const financial = profile.dashboard.financialSummary;
-    financialContainer.innerHTML = `
-      <div class="financial-item">
-        <span>Monthly Revenue: ₵${financial.monthlyRevenue || 0}</span>
-      </div>
-      <div class="financial-item">
-        <span>Monthly Expenses: ₵${financial.monthlyExpenses || 0}</span>
-      </div>
-      <div class="financial-item">
-        <span>Profit Margin: ${financial.profitMargin || 0}%</span>
-      </div>
-    `;
-  }
-  
-  // Load inventory summary
-  const inventoryContainer = document.querySelector('[data-inventory]');
-  if (inventoryContainer && profile?.dashboard?.inventory) {
-    const inventory = profile.dashboard.inventory;
-    inventoryContainer.innerHTML = `
-      <div class="inventory-item">
-        <span>Total Products: ${inventory.totalProducts}</span>
-      </div>
-      <div class="inventory-item">
-        <span>Low Stock: ${inventory.lowStockItems.length}</span>
-      </div>
-      <div class="inventory-item">
-        <span>Out of Stock: ${inventory.outOfStockItems.length}</span>
-      </div>
-    `;
-  }
-}
+
+
 
 // Helper function to format activity types for display
 function formatActivityType(type) {
@@ -1152,180 +1208,9 @@ function formatTimeAgo(timestamp) {
   return `${days}d ago`;
 }
 
-/* Dashboard */
-function setupDashboard() {
-  const table = el('#products-table');
-  if (!table) return;
-  
-  // Check if user is authenticated with new system
-  if (window.farmLinkAuth && window.farmLinkAuth.auth) {
-    const auth = window.farmLinkAuth.auth;
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        showToast('Please login', 'warn');
-        window.location.href = 'login.html';
-      } else {
-        await loadUserProfileIntoDashboard();
-        await loadUserProductsIntoTable();
-        // Refresh stats to ensure accuracy
-        await refreshDashboardStats();
-      }
-    });
-  } else {
-    // Fallback to old system if new system not ready
-    initFirebase().then(({ auth, onAuthStateChanged }) => {
-      onAuthStateChanged(auth, (user) => {
-        if (!user) {
-          showToast('Please login', 'warn');
-          window.location.href = 'login.html';
-        } else {
-          loadUserProfileIntoDashboard();
-          loadUserProductsIntoTable();
-        }
-      });
-    });
-  }
-  const addBtn = el('#add-product');
-  addBtn?.addEventListener('click', () => {
-    openModal(`
-      <form class="form-row" id="modal-add-form">
-        <input required type="text" name="name" placeholder="Product name" />
-        <input required type="number" name="price" placeholder="Price (₵)" />
-        <input required type="number" name="stock" placeholder="Stock" />
-      </form>`, {
-      title: 'Add Product',
-      actions: [
-        { label: 'Cancel', variant: 'btn-outline' },
-        { label: 'Add', variant: 'btn-primary', onClick: async () => {
-            const f = el('#modal-add-form');
-            if (!f.reportValidity()) return;
-            const name = el('[name="name"]', f).value;
-            const price = el('[name="price"]', f).value;
-            const stock = el('[name="stock"]', f).value;
-            const row = table.insertRow(-1);
-            row.innerHTML = `<td>${name}</td><td>₵${price}</td><td>${stock}</td><td><button class="btn btn-outline btn-sm action-edit">Edit</button> <button class="btn btn-outline btn-sm action-delete">Delete</button></td>`;
-            // Save to Firestore (products collection per user)
-            try {
-              if (window.farmLinkAuth && window.farmLinkAuth.db) {
-                // Use new system
-                const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-                await addDoc(collection(window.farmLinkAuth.db, 'users', window.farmLinkAuth.auth.currentUser.uid, 'products'), { name, price: Number(price), stock: Number(stock), createdAt: Date.now() });
-              } else {
-                // Fallback to old system
-                const { db, auth, collection, addDoc } = await initFirebase();
-                await addDoc(collection(db, 'users', auth.currentUser.uid, 'products'), { name, price: Number(price), stock: Number(stock), createdAt: Date.now() });
-              }
-              // Track user activity
-              await updateUserActivity('product_added', { productName: name, price: Number(price), stock: Number(stock) });
-            } catch (_) { /* ignore for now */ }
-            closeModal();
-            showToast('Product added');
-        }},
-      ],
-    });
-  });
 
-  // Edit/Delete with event delegation
-  table.addEventListener('click', (e) => {
-    const row = e.target.closest('tr');
-    if (!row) return;
-    if (e.target.closest('.action-delete')) {
-      openModal('<p>Delete this product?</p>', {
-        title: 'Confirm',
-        actions: [
-          { label: 'Cancel', variant: 'btn-outline' },
-          { label: 'Delete', variant: 'btn-primary', onClick: async () => { 
-            const productName = row.children[0].textContent;
-            row.remove(); 
-            closeModal(); 
-            showToast('Deleted', 'warn');
-            // Track user activity
-            await updateUserActivity('product_deleted', { productName });
-          } },
-        ],
-      });
-    }
-    if (e.target.closest('.action-edit')) {
-      const [nameCell, priceCell, stockCell] = row.children;
-      const currentName = nameCell.textContent;
-      const currentPrice = priceCell.textContent.replace('₵','');
-      const currentStock = stockCell.textContent;
-      openModal(`
-        <form class="form-row" id="modal-edit-form">
-          <input required type="text" name="name" value="${currentName}" />
-          <input required type="number" name="price" value="${currentPrice}" />
-          <input required type="number" name="stock" value="${currentStock}" />
-        </form>`, {
-        title: 'Edit Product',
-        actions: [
-          { label: 'Cancel', variant: 'btn-outline' },
-          { label: 'Save', variant: 'btn-primary', onClick: async () => {
-              const f = el('#modal-edit-form');
-              if (!f.reportValidity()) return;
-              const oldName = nameCell.textContent;
-              const newName = el('[name="name"]', f).value;
-              const newPrice = el('[name="price"]', f).value;
-              const newStock = el('[name="stock"]', f).value;
-              
-              nameCell.textContent = newName;
-              priceCell.textContent = `₵${newPrice}`;
-              stockCell.textContent = newStock;
-              
-              closeModal();
-              showToast('Saved');
-              
-              // Track user activity
-              await updateUserActivity('product_updated', { 
-                oldName, 
-                newName, 
-                newPrice: Number(newPrice), 
-                newStock: Number(newStock) 
-              });
-          }},
-        ],
-      });
-    }
-  });
-}
 
-async function loadUserProductsIntoTable() {
-  const table = el('#products-table');
-  if (!table) return;
-  
-  try {
-    if (window.farmLinkAuth && window.farmLinkAuth.db) {
-      // Use new system
-      const { collection, getDocs, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-      const user = window.farmLinkAuth.auth.currentUser;
-      if (!user) return;
-      const q = query(collection(window.farmLinkAuth.db, 'users', user.uid, 'products'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      const tbody = table.querySelector('tbody');
-      tbody.innerHTML = '';
-      snap.forEach((docSnap) => {
-        const p = docSnap.data();
-        const row = table.insertRow(-1);
-        row.innerHTML = `<td>${p.name}</td><td>₵${p.price}</td><td>${p.stock}</td><td><button class="btn btn-outline btn-sm action-edit">Edit</button> <button class="btn btn-outline btn-sm action-delete">Delete</button></td>`;
-      });
-    } else {
-      // Fallback to old system
-      const { db, auth, collection, getDocs, query, orderBy } = await initFirebase();
-      const user = auth.currentUser;
-      if (!user) return;
-      const q = query(collection(db, 'users', user.uid, 'products'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      const tbody = table.querySelector('tbody');
-      tbody.innerHTML = '';
-      snap.forEach((docSnap) => {
-        const p = docSnap.data();
-        const row = table.insertRow(-1);
-        row.innerHTML = `<td>${p.name}</td><td>₵${p.price}</td><td>${p.stock}</td><td><button class="btn btn-outline btn-sm action-edit">Edit</button> <button class="btn btn-outline btn-sm action-delete">Delete</button></td>`;
-      });
-    }
-  } catch (error) {
-    console.error('Error loading user products:', error);
-  }
-}
+
 
 /* Helpers */
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
@@ -1455,22 +1340,7 @@ function setupMarketplace() {
     });
   });
 
-  // Wishlist (like) toggle with tracking
-  grid.addEventListener('click', (e) => {
-    const fav = e.target.closest('.icon-btn[data-like]');
-    if (!fav) return;
-    fav.classList.toggle('active');
-    
-    // Track wishlist activity
-    const card = e.target.closest('.product-card');
-    const productName = card?.querySelector('h3')?.textContent || 'Product';
-    updateUserActivity('wishlist_toggle', { 
-      productName, 
-      action: fav.classList.contains('active') ? 'added' : 'removed' 
-    });
-    
-    showToast(fav.classList.contains('active') ? 'Added to wishlist' : 'Removed from wishlist');
-  });
+
 
   // Add activity tracking for category browsing
   const categoryButtons = document.querySelectorAll('.category-btn');
@@ -1720,59 +1590,7 @@ async function loadCompleteUserProfile() {
 }
 
 // Load user profile into dashboard
-async function loadUserProfileIntoDashboard() {
-  if (!currentUser) return;
-  
-  try {
-    const profile = await loadCompleteUserProfile();
-    if (!profile) return;
-    
-    userProfile = profile;
-    
-    // Count actual products from user's products collection
-    const actualProductCount = await countUserProducts();
-    
-    // Update profile with actual counts if they differ
-    if (actualProductCount !== (profile.stats?.totalListings || 0)) {
-      await updateUserStats({
-        totalListings: actualProductCount,
-        totalProducts: actualProductCount
-      });
-      
-      // Update local profile
-      userProfile.stats = userProfile.stats || {};
-      userProfile.stats.totalListings = actualProductCount;
-      userProfile.dashboard = userProfile.dashboard || {};
-      userProfile.dashboard.inventory = userProfile.dashboard.inventory || {};
-      userProfile.dashboard.inventory.totalProducts = actualProductCount;
-    }
-    
-    // Update stat cards with real data
-    const statEls = {
-      listings: document.querySelector('.stats .card:nth-child(1) h3'),
-      orders: document.querySelector('.stats .card:nth-child(2) h3'),
-      revenue: document.querySelector('.stats .card:nth-child(3) h3'),
-      buyers: document.querySelector('.stats .card:nth-child(4) h3')
-    };
-    
-    if (statEls.listings) statEls.listings.textContent = userProfile.stats?.totalListings || 0;
-    if (statEls.orders) statEls.orders.textContent = userProfile.stats?.pendingOrders || 0;
-    if (statEls.revenue) statEls.revenue.textContent = `₵${userProfile.stats?.totalRevenue || 0}`;
-    if (statEls.buyers) statEls.buyers.textContent = userProfile.stats?.totalBuyers || 0;
-    
-    // Load dashboard sections
-    await loadDashboardSections(userProfile);
-    
-    console.log('Dashboard loaded with real data:', {
-      totalListings: userProfile.stats?.totalListings,
-      totalProducts: userProfile.dashboard?.inventory?.totalProducts,
-      actualProductCount
-    });
-    
-  } catch (error) {
-    console.error('Error loading user profile into dashboard:', error);
-  }
-}
+
 
 // Count actual products from user's products collection
 async function countUserProducts() {
@@ -1998,7 +1816,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMarketplace();
   setupContact();
   setupAuth();
-  setupDashboard();
   setupMobileMenu();
   initApp(); // Initialize the main application script
 });

@@ -21,8 +21,14 @@
           <a href="contact.html">Contact</a>
         </nav>
         <div class="nav-cta">
-          <a class="btn btn-outline" href="login.html">Login</a>
-          <a class="btn btn-secondary" href="signup.html">Sign Up</a>
+          <div data-guest>
+            <a class="btn btn-outline" href="login.html">Login</a>
+            <a class="btn btn-secondary" href="signup.html">Sign Up</a>
+          </div>
+          <div data-user style="display: none;">
+            <span class="user-name"></span>
+            <button class="logout-btn btn btn-outline">Logout</button>
+          </div>
         </div>
       </div>
     </header>
@@ -45,7 +51,7 @@
               <option>Crops</option>
             </select>
             <input id="filter-location" type="text" placeholder="Location (e.g., Tamale)" />
-            <a href="dashboard.html" class="btn btn-primary">Sell a Product</a>
+            <a href="index.html" class="btn btn-primary">Sell a Product</a>
           </div>
         </div>
 
@@ -90,6 +96,8 @@
         </div>
       </div>
     </footer>
+    <script src="local-database.js"></script>
+    <script src="local-auth.js"></script>
     <script src="script.js"></script>
   </body>
   </html>
